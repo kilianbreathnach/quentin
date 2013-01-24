@@ -6,8 +6,8 @@ import numpy as np
 # initial values and constants
 
 G = 6.67*10**(-11)
-H0 = 0.0735    # this has h=0.72 and units of inverse Gyr
-m2 = 1.*10**(-40)
+H0 = 100.
+m2 = 1.
 
 a = 1.
 
@@ -21,16 +21,16 @@ dt = 0.00001
 
 # stupid euler routines
 
-def D_phidot(a, adot, f, fdot):
+def D_phidot(a, adot, f, fdot, m2, dt):
     return fdot + (3*(adot/a)*fdot + m2*f)*dt
 
-def D_phi(f, fdot):
+def D_phi(f, fdot, dt):
     return f - fdot*dt
 
-def D_a(a, adot):
+def D_a(a, adot, dt):
     return a - adot*dt
 
-def Friedman(a, f, fdot):
+def Friedman(a, f, fdot, m2, H0, G):
     return np.sqrt((0.3*H0**2)/a + ((4./3.)*np.pi*G)*(fdot**2 + m2*f**2))
 
 # have at it
@@ -43,15 +43,15 @@ phidotl = [phidot]
 t = 0.
 tlist = [0.]
 
-while a > 0.00001 and k < 10000000:
+while a > 0.0001 and k < 100000:
 
     fdot_old = phidot
-    phidot = D_phidot(a, adot, phi, phidot)
-    phi = D_phi(phi, fdot_old)
+    phidot = D_phidot(a, adot, phi, phidot, m2, dt)
+    phi = D_phi(phi, fdot_old, dt)
 
-    a = D_a(a, adot)
+    a = D_a(a, adot, dt)
 
-    adot = Friedman(a, phi, phidot)
+    adot = Friedman(a, phi, phidot, m2, H0, G)
 
     t -= dt
 
