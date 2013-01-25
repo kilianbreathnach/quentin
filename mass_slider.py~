@@ -35,7 +35,7 @@ def D_a(a, adot):
     return a - adot*dt
 
 def Friedman(a, f, fdot, m2):
-    return np.sqrt((0.3*H0**2)/a + ((4./3.)*np.pi*G)*(fdot**2 + m2*f**2))
+    return np.sqrt((0.3*H0**2)/a + ((4./3.)*np.pi*G)*(fdot**2 + m2*f**2)*a**2)
 
 # have at it
 
@@ -82,14 +82,13 @@ subplots_adjust(left=0.25, bottom=0.25)
 time, scale = run_dat_shiet(a0, adot0, phi0, phidot0, mass2)
 
 l, = plot(time, scale, lw=2, color='red')
-axis([-20, 0, 0, 1])
 
 axcolor = 'lightgoldenrodyellow'
 axmass = axes([0.25, 0.1, 0.65, 0.03], axisbg=axcolor)
 axphi  = axes([0.25, 0.15, 0.65, 0.03], axisbg=axcolor)
 
 smass = Slider(axmass, 'scalar mass', 0.001, 1.0, valinit=mass2)
-sfin_phi = Slider(axphi, 'current phi', 0.1, 10.0, valinit=phi0)
+sfin_phi = Slider(axphi, 'current phi', 0., 1.0, valinit=phi0)
 
 def update(val):
 	mass = smass.val
