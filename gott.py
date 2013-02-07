@@ -8,7 +8,6 @@ import numpy as np
 from scipy.integrate import odeint as oink
 from scipy.integrate import trapz
 
-m_star2 = 1.0
 
 def RK4(dt, yn, f, *args):
 
@@ -29,103 +28,106 @@ def adv_z(z, H_t, m_star2):
 
     return - z**2 - 3*H_t*z - m_star2
 
+if __name__=="__main__":
 
-#---------------
-# Gettin Started!
-#-----------------
+    m_star2 = 1.0e-30
 
-# First find a dumb H(tau)
+    #---------------
+    # Gettin Started!
+    #-----------------
 
-a0 = 1.0e-14    # make starting size of universe tiny
-t = np.linspace(0.0, 1.1, num=10000) # approx first time range
+    # First find a dumb H(tau)
 
-def first_int(a, t):
-    return np.sqrt(0.27*a**(-1) + 0.73*a**2)  # assume w = -1
+    a0 = 1.0e-16    # make starting size of universe tiny
+    t = np.linspace(0.0, 1.1, num=100000) # approx first time range
 
-a = oink(first_int, a0, t)
-a = np.reshape(a, len(a))
+    def first_int(a, t):
+        return np.sqrt(0.27*a**(-1) + 0.73*a**2)  # assume w = -1
 
-end = np.abs(a - 1.0).argmin()  # index of tau where a = 1
-tau = t[:end]
-tau_0 = t[end]
+    a = oink(first_int, a0, t)
+    a = np.reshape(a, len(a))
 
-a_dot = np.gradient(a)
+    end = np.abs(a - 1.0).argmin()  # index of tau where a = 1
+    tau = t[:end]
+    tau_0 = t[end]
 
-a = a[:end]         #\
-a_dot = a_dot[:end] # |- first guess stuff
-H = a_dot/a         #/
+    a_dot = np.gradient(a)
 
-
-# start the plotting
-
-fig = plt.figure()
-ax1 = fig.add_subplot(211)
-ax1.plot(tau, a, label=r"$\Lambda$CDM")
+    a = a[:end]         #\
+    a_dot = a_dot[:end] # |- first guess stuff
+    H = a_dot/a         #/
 
 
-# now to iterate
+    # start the plotting
 
-difference = 10.  # just to get the while loop rolling
-delta_w0 = 1.0
-old_w = -1.0*np.ones(len(t[:end])) # w for first guess
-
-k = 0 # let's see how long until convergence
-
-while (difference > (0.01*delta_w0)):
-
-    zeta = np.array([0.0])
-
-    for i in range(len(tau)-1):
-        '''advance all the zeta using old H'''
-        zeta = np.append(zeta,
-                         RK4(np.diff([tau[i+1], tau[i]]), zeta[i],
-                             adv_z, zeta[i], H[i], m_star2) )
-
-    w_tau = np.array([])
-
-    for z in zeta:
-        '''compute new eqn of state'''
-        w_tau = np.append(w_tau, (z**2 - m_star2)/(z**2 + m_star2))
-
-    exp_int = np.array([])
-
-    for i in range(len(H)):
-        '''get an array for the exponent in the new H'''
-        exp_int = np.append(exp_int, trapz(H[i:]*(1. + w_tau[i:])))
-
-    new_a = np.array([a0])
-
-    for i in range(len(tau)-1):
-        new_a = np.append(new_a,
-                          RK4(np.diff([tau[i+1], tau[i]]), a0,
-                              H_tau, a[i], exp_int[i]) )
-
-    new_a_dot = np.gradient(new_a)
-
-    difference = np.abs(trapz(w_tau) - trapz(old_w))
-    delta_w0 = np.abs(1.0 - w_tau[-1])
-
-    old_w = w_tau
-    a = new_a
-    H = new_a_dot/a
-
-    k += 1
+    fig = plt.figure()
+    ax1 = fig.add_subplot(211)
+    ax1.plot(tau, a, label=r"$\Lambda$CDM")
 
 
-# last of the plotting
+    # now to iterate
 
-ax1.plot(tau, a, label=r"QCDM")
-ax1.set_xlabel(r"$\tau$")
-ax1.set_ylabel(r"a")
+    difference = 10.  # just to get the while loop rolling
+    delta_w0 = 1.0
+    old_w = -1.0*np.ones(len(t[:end])) # w for first guess
 
-ax2 = fig.add_subplot(212)
-ax2.plot(tau, np.abs(1.0-w_tau))
-ax2.set_xlabel(r"$\tau$")
-ax2.set_ylabel(r"$\delta$w($\tau$)")
+    k = 0 # let's see how long until convergence
 
-handles, labels = ax1.get_legend_handles_labels()
-ax1.legend(handles, labels)
+    while (difference > (0.01*delta_w0)):
 
-fig.savefig("/home/kilian/public_html/quentin/gott.png")
+        zeta = np.array([0.0])
 
-print "the number of runs to converge was k=", k
+        for i in range(len(tau)-1):
+            '''advance all the zeta using old H'''
+            zeta = np.append(zeta,
+                             RK4(tau[i+1] - tau[i], zeta[i],
+                                 adv_z, zeta[i], H[i], m_star2) )
+
+        w_tau = np.array([])
+
+        for z in zeta:
+            '''compute new eqn of state'''
+            w_tau = np.append(w_tau, (z**2 - m_star2)/(z**2 + m_star2))
+
+        exp_int = np.array([])
+
+        for i in range(len(H)):
+            '''get an array for the exponent in the new H'''
+            exp_int = np.append(exp_int, trapz(H[i:]*(1. + w_tau[i:])))
+
+        new_a = np.array([a0])
+
+        for i in range(len(tau)-1):
+            new_a = np.append(new_a,
+                              RK4(tau[i+1] - tau[i], a0,
+                                  H_tau, a[i], exp_int[i]) )
+
+        new_a_dot = np.gradient(new_a)
+
+        difference = np.abs(trapz(w_tau) - trapz(old_w))
+        delta_w0 = np.abs(1.0 + w_tau[-1])
+
+        old_w = w_tau
+        a = new_a
+        H = new_a_dot/a
+
+        k += 1
+
+
+    # last of the plotting
+
+    ax1.plot(tau, a, label=r"QCDM")
+    ax1.set_xlabel(r"$\tau$")
+    ax1.set_ylabel(r"a")
+
+    ax2 = fig.add_subplot(212)
+    ax2.plot(tau, np.abs(1.0-w_tau))
+    ax2.set_xlabel(r"$\tau$")
+    ax2.set_ylabel(r"$\delta$w($\tau$)")
+
+    handles, labels = ax1.get_legend_handles_labels()
+    ax1.legend(handles, labels)
+
+    fig.savefig("/home/kilian/public_html/quentin/gott.png")
+
+    print "the number of runs to converge was k=", k
