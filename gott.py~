@@ -21,7 +21,7 @@ def RK4(dt, yn, f, *args):
 
 def H_tau(a, exp_int):
 
-    return np.sqrt(0.27*a**(-1) + (0.73*a**2)*np.exp(3.*exp_int))
+    return np.sqrt(0.0001*a**(-2) + 0.2699*a**(-1) + (0.73*a**2)*np.exp(3.*exp_int))
 
 
 def adv_z(z, H_t, m_star2):
@@ -30,7 +30,7 @@ def adv_z(z, H_t, m_star2):
 
 if __name__=="__main__":
 
-    m_star2 = 1.0e-30
+    m_star2 = 1.
 
     #---------------
     # Gettin Started!
@@ -38,24 +38,36 @@ if __name__=="__main__":
 
     # First find a dumb H(tau)
 
-    a0 = 1.0e-16    # make starting size of universe tiny
-    t = np.linspace(0.0, 1.1, num=10000) # approx first time range
+    a0 = 1.0e-17    # make starting size of universe tiny
+#    ti = np.arange(0.0, 0.05, 0.0000001)
+#    tm = np.arange(0.05, 0.15, 0.00001) # approx first time range
+#    tf = np.arange(0.15, 1.1, 0.001)
+    t = np.linspace(0.0, 1.1, num=1101)
 
     def first_int(a, t):
-        return np.sqrt(0.27*a**(-1) + 0.73*a**2)  # assume w = -1
+        return np.sqrt(0.0001*a**(-2) + 0.2699*a**(-1) + 0.73*a**2)  # assume w = -1
 
-    a = oink(first_int, a0, t)
-    a = np.reshape(a, len(a))
+#    a = oink(first_int, a0, t)
+#    a = np.reshape(a, len(a))
+    a = np.array([a0])
+    for i in range(len(t)-1):
+        a = np.append(a, RK4(t[i+1] - t[i], a[i],
+                             first_int, a[i], "HAHA!") )
+
 
     end = np.abs(a - 1.0).argmin()  # index of tau where a = 1
     tau = t[:end]
     tau_0 = t[end]
 
-    a_dot = np.gradient(a)
+    print "tau_0 is ", tau_0
+
+    a_dot = first_int(a, "HAHA")
 
     a = a[:end]         #\
     a_dot = a_dot[:end] # |- first guess stuff
     H = a_dot/a         #/
+
+    print "initial H is: ", H
 
 
     # start the plotting
@@ -63,7 +75,6 @@ if __name__=="__main__":
     fig = plt.figure()
     ax1 = fig.add_subplot(211)
     ax1.plot(tau, a, label=r"$\Lambda$CDM")
-
 
     # now to iterate
 
@@ -73,21 +84,25 @@ if __name__=="__main__":
 
     k = 0 # let's see how long until convergence
 
-    while (difference > (0.01*delta_w0)):
+    while (difference > (0.1*delta_w0)):
 
-        zeta = np.array([0.0])
+        zeta = np.array([0.])
 
-        for i in range(len(tau)-1):
+        for i in range(len(tau) - 1):
             '''advance all the zeta using old H'''
             zeta = np.append(zeta,
                              RK4(tau[i+1] - tau[i], zeta[i],
                                  adv_z, zeta[i], H[i], m_star2) )
+
+        print "zeta is ", zeta
 
         w_tau = np.array([])
 
         for z in zeta:
             '''compute new eqn of state'''
             w_tau = np.append(w_tau, (z**2 - m_star2)/(z**2 + m_star2))
+
+        print "w_tau is ", w_tau
 
         exp_int = np.array([])
 
@@ -99,13 +114,15 @@ if __name__=="__main__":
 
         for i in range(len(tau)-1):
             new_a = np.append(new_a,
-                              RK4(tau[i+1] - tau[i], a0,
-                                  H_tau, a[i], exp_int[i]) )
+                              RK4(tau[i+1] - tau[i], new_a[i],
+                                  H_tau, new_a[i], exp_int[i]) )
 
-        new_a_dot = np.gradient(new_a)
+        print "new a is", new_a
+
+        new_a_dot = H_tau(new_a, exp_int)
 
         difference = np.abs(trapz(w_tau) - trapz(old_w))
-        delta_w0 = np.abs(1.0 - w_tau[-1])
+        delta_w0 = np.abs(1.0 + w_tau[-1])
 
         old_w = w_tau
         a = new_a
