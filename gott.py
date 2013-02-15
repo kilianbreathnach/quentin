@@ -38,21 +38,19 @@ if __name__=="__main__":
 
     # First find a dumb H(tau)
 
-    a0 = 1.0e-17    # make starting size of universe tiny
-#    ti = np.arange(0.0, 0.05, 0.0000001)
-#    tm = np.arange(0.05, 0.15, 0.00001) # approx first time range
-#    tf = np.arange(0.15, 1.1, 0.001)
-    t = np.linspace(0.0, 1.1, num=1101)
-
-    def first_int(a, t):
-        return np.sqrt(0.0001*a**(-2) + 0.2699*a**(-1) + 0.73*a**2)  # assume w = -1
+    a0 = 1.0e-20    # make starting size of universe tiny
+    t1 = np.arange(0.0, a0*1000, a0)
+    t2 = np.arange(t1[-1]+a0, (t1[-1]+a0)*1000, a0*1000) # approx first time range
+    t3 = np.arange(t2[-1]+a0*1000, (t2[-1]+a0)*1000, a0*10.0e6) # approx first time range
+    t4 = np.arange(t3[-1]+a0*10.0e6, 1.1, 0.001)
+    t = np.concatenate([t1, t2, t3, t4])
 
 #    a = oink(first_int, a0, t)
 #    a = np.reshape(a, len(a))
     a = np.array([a0])
     for i in range(len(t)-1):
         a = np.append(a, RK4(t[i+1] - t[i], a[i],
-                             first_int, a[i], "HAHA!") )
+                             H_tau, a[i], 0.0) )
 
 
     end = np.abs(a - 1.0).argmin()  # index of tau where a = 1
@@ -61,7 +59,7 @@ if __name__=="__main__":
 
     print "tau_0 is ", tau_0
 
-    a_dot = first_int(a, "HAHA")
+    a_dot = H_tau(a, 0.0)
 
     a = a[:end]         #\
     a_dot = a_dot[:end] # |- first guess stuff
